@@ -1,0 +1,433 @@
+#
+# Copyright (c) 2018-2023 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+---
+description: |
+  This file contains version details that are used by various
+  repositories for setting up the correct environment to run
+  tests and package components.
+
+format: |
+  Each entry in this file MUST conform to the following format:
+
+  <group>:
+   description: "<brief-description>"
+   notes: "<notes>"
+
+   <project>:
+     description: "<brief-description>"
+     notes: "<notes>"
+     url: "<project-url>"
+     issue: "<bug-url>"
+     commit: "<commit>"
+     version: "<version>"
+     uscan-opts: "<optional uscan options>"
+     uscan-url: "<url regex for uscan to list versions>"
+     release: "<version>"
+     branch: "<git-branch>"
+     meta:
+       <key-1>: "<value-1>"
+       <key-n>: "<value-n>"
+
+  Notes:
+
+  - All sections (except "meta") MUST include a description where
+    applicable. This is expected to be a brief summary.
+
+  - A section MAY specify a "notes" section which may be multi-line.
+    It is expected to be expand on the information specified in
+    "description".
+
+  - All sections (except "meta") MUST include a URL where applicable.
+
+  - A section MAY specify a bug URL using the "issue" field.
+
+  - A section MAY define a "meta" section to store additional
+    information about a project or group.
+
+  - Each entry MUST specify ATLEAST one of "commit", "version", "release"
+    and "branch".
+
+  - WARNING: Gotcha alert! Remember to double-quote all strings
+    (except multi-line strings)! This avoids the possibility of a
+    version containing a period being treated as a floating point
+    number (and truncated!)
+
+  - NOTE: For the uscan related entries, refer to the following uscan pages:
+    https://manpages.debian.org/stretch/devscripts/uscan.1.en.html
+    https://wiki.debian.org/debian/watch
+    Particularly note the 'Common mistakes' section.
+    Also note, if you place the uscan strings on single lines in this file then
+    '\'s need to be '\'d, so are replaced with '\\', but this does not apply
+    for '>-' multi line entries, which can then use the normal uscan syntax.
+
+assets:
+  description: "Additional required system elements"
+
+  hypervisor:
+    description: "Component used to create virtual machines"
+
+    cloud_hypervisor:
+      description: "Cloud Hypervisor is an open source Virtual Machine Monitor"
+      url: "https://github.com/cloud-hypervisor/cloud-hypervisor"
+      uscan-url: >-
+        https://github.com/cloud-hypervisor/cloud-hypervisor/tags.*/v?(\d\S+)\.tar\.gz
+      version: "v40.0"
+
+    firecracker:
+      description: "Firecracker micro-VMM"
+      url: "https://github.com/firecracker-microvm/firecracker"
+      uscan-url: >-
+        https://github.com/firecracker-microvm/firecracker/tags
+        .*/v?(\d\S+)\.tar\.gz
+      version: "v1.6.0"
+
+    qemu:
+      description: "VMM that uses KVM"
+      url: "https://github.com/qemu/qemu"
+      version: "v8.2.4"
+      tag: "v8.2.4"
+      # Do not include any non-full release versions
+      # Break the line *without CR or space being appended*, to appease
+      # yamllint, and note the deliberate ' ' at the end of the expression.
+      uscan-opts: "opts=uversionmangle=s/(\\d)[_\\.\\-\\+]?\
+        ((RC|rc|pre|dev|beta|alpha)\\d*)$/$1~$2/ "
+      uscan-url: >-
+        https://github.com/qemu/qemu/tags
+        .*/v?(\d\S+)\.tar\.gz
+
+    qemu-cca-experimental:
+     description: "QEMU with experimental CCA support"
+     url: "https://git.codelinaro.org/linaro/dcap/qemu.git"
+     tag: "28a876475d00ad941fa6c5ee5a9b37ec9592d1e1"
+
+    qemu-snp-experimental:
+      description: "QEMU with SNP support"
+      url: "https://github.com/confidential-containers/qemu.git"
+      tag: "amd-snp-202402240000"
+
+    stratovirt:
+      description: "StratoVirt is an lightweight opensource VMM"
+      url: "https://github.com/openeuler-mirror/stratovirt"
+      version: "v2.3.0"
+
+  image:
+    description: |
+      Root filesystem disk image used to boot the guest virtual
+      machine.
+    url: "https://github.com/kata-containers/kata-containers/tools/osbuilder"
+    architecture:
+      aarch64:
+        name: &default-image-name "ubuntu"
+        version: &default-image-version "latest"
+        cca:
+          name: *default-image-name
+          version: "jammy"
+        nvidia-gpu:
+          name: *default-image-name
+          version: "jammy"
+        nvidia-gpu-confidential:
+          name: *default-image-name
+          version: "jammy"
+      ppc64le:
+        name: *default-image-name
+        version: *default-image-version
+      s390x:
+        name: *default-image-name
+        version: *default-image-version
+        confidential:
+          name: *default-image-name
+          version: *default-image-version
+      x86_64:
+        name: *default-image-name
+        version: *default-image-version
+        confidential:
+          name: *default-image-name
+          version: *default-image-version
+        nvidia-gpu:
+          name: *default-image-name
+          version: "jammy"
+        nvidia-gpu-confidential:
+          name: *default-image-name
+          version: "jammy"
+
+    meta:
+      image-type: *default-image-name
+
+  initrd:
+    description: |
+      Root filesystem initrd used to boot the guest virtual
+      machine.
+    url: "https://github.com/kata-containers/kata-containers/tools/osbuilder"
+    architecture:
+      aarch64:
+        name: &default-initrd-name "alpine"
+        version: &default-initrd-version "3.18"
+        cca:
+          name: &glibc-initrd-name "ubuntu"
+          version: &glibc-initrd-version "jammy"
+        nvidia-gpu:
+          name: "ubuntu"
+          version: "jammy"
+        nvidia-gpu-confidential:
+          name: "ubuntu"
+          version: "jammy"
+      # Do not use Alpine on ppc64le & s390x, the agent cannot use musl because
+      # there is no such Rust target
+      ppc64le:
+        name: &glibc-initrd-name "ubuntu"
+        version: &glibc-initrd-version "20.04"
+      s390x:
+        name: *glibc-initrd-name
+        version: *glibc-initrd-version
+        confidential:
+          name: *glibc-initrd-name
+          version: *glibc-initrd-version
+      x86_64:
+        name: *default-initrd-name
+        version: *default-initrd-version
+        confidential:
+          name: *glibc-initrd-name
+          version: *glibc-initrd-version
+        mariner:
+          name: "cbl-mariner"
+          version: "2.0"
+        nvidia-gpu:
+          name: *glibc-initrd-name
+          version: "jammy"
+        nvidia-gpu-confidential:
+          name: *glibc-initrd-name
+          version: "jammy"
+
+  kernel:
+    description: "Linux kernel optimised for virtual machines"
+    url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
+    version: "v6.1.62"
+    confidential:
+      description: "Linux kernel with x86_64 TEEs (SEV, SNP, and TDX) support"
+      url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
+      version: "v6.7"
+
+  kernel-arm-experimental:
+    description: "Linux kernel with cpu/mem hotplug support on arm64"
+    url: "https://cdn.kernel.org/pub/linux/kernel/v5.x/"
+    version: "v5.15.138"
+    confidential:
+      description: "Linux kernel with RME support on arm64"
+      url: "https://gitlab.arm.com/linux-arm/linux-cca"
+      version: "d901c27a1783a88ee32339a5b4bfa2ac8e70e597"
+
+  kernel-dragonball-experimental:
+    description: "Linux kernel with Dragonball VMM optimizations like upcall"
+    url: "https://cdn.kernel.org/pub/linux/kernel/v5.x/"
+    version: "v6.1.62"
+
+externals:
+  description: "Third-party projects used by the system"
+
+  busybox:
+    desc: "The Swiss Army Knife of Embedded Linux"
+    version: "1.36.1"
+    url: "https://busybox.net/downloads"
+
+  helm:
+    description: "Kubernetes package manager"
+    url: "https://get.helm.sh/"
+    version: "v3.15.2"
+
+  cni-plugins:
+    description: "CNI network plugins"
+    url: "https://github.com/containernetworking/plugins"
+    version: "v1.2.0"
+
+  coco-guest-components:
+    description: "Provides attested key unwrapping for image decryption"
+    url: "https://github.com/kevinzs2048/guest-components/"
+    version: "5236a689d43c8943d77077e29bbc995e0b64cf68"
+    toolchain: "1.76.0"
+
+  coco-trustee:
+    description: "Provides attestation and secret delivery components"
+    url: "https://github.com/confidential-containers/trustee"
+    version: "4a83e3b99ceb7cb6e8ce523d2ca1762eec7b7239"
+    image: "ghcr.io/confidential-containers/staged-images/kbs"
+    image_tag: "4a83e3b99ceb7cb6e8ce523d2ca1762eec7b7239"
+    toolchain: "1.74.0"
+
+  crio:
+    description: |
+      OCI-based Kubernetes Container Runtime Interface implementation
+    url: "https://github.com/cri-o/cri-o"
+    branch: "release-1.23"
+
+  containerd:
+    description: |
+      Containerd for Kubernetes Container Runtime Interface.
+    url: "github.com/containerd/containerd"
+    tarball_url: "https://github.com/containerd/containerd/releases/download"
+    # containerd from v1.5.0 used the path unix socket
+    # instead of abstract socket, thus kata wouldn's support the containerd's
+    # version older than them.
+    version: "v1.6.8"
+    lts: "v1.6"
+    active: "v1.7"
+
+  critools:
+    description: "CLI tool for Container Runtime Interface (CRI)"
+    url: "https://github.com/kubernetes-sigs/cri-tools"
+    version: "1.23.0"
+    # As we don't want to disrupt what we have on the `tests` repo, let's
+    # create a "latest" entry and use that for the GitHub actions tests.
+    latest: "v1.29"
+
+  cryptsetup:
+    description: "A utility used to setup disk encryption, integrity protection"
+    url: "https://gitlab.com/cryptsetup/cryptsetup"
+    version: "v2.5.0"
+
+  gperf:
+    description: "GNU gperf is a perfect hash function generator"
+    url: "http://ftp.gnu.org/pub/gnu/gperf/"
+    version: "3.1"
+
+  hadolint:
+    description: "the dockerfile linter used by static-checks"
+    url: "https://github.com/hadolint/hadolint"
+    version: "2.12.0"
+
+  lvm2:
+    description: "LVM2 and device-mapper tools and libraries"
+    url: "https://github.com/lvmteam/lvm2"
+    version: "v2_03_16"
+
+  kubernetes:
+    description: "Kubernetes project container manager"
+    url: "https://github.com/kubernetes/kubernetes"
+    # regexp formed to match 'd.tar.gz', deliberately to not match any alpha or
+    # beta type releases
+    uscan-url: >-
+      https://github.com/kubernetes/kubernetes/tags
+      .*/v?([\d\.]+)\.tar\.gz
+    version: "1.23.1-00"
+
+  kustomize:
+    description: "Kubernetes native configuration management"
+    url: "https://github.com/kubernetes-sigs/kustomize"
+    version: "v5.3.0"
+    checksum:
+      amd64: "3ab32f92360d752a2a53e56be073b649abc1e7351b912c0fb32b960d1def854c"
+      arm64: "a1ec622d4adeb483e3cdabd70f0d66058b1e4bcec013c4f74f370666e1e045d8"
+      # yamllint disable-line rule:line-length
+      ppc64le: "946b1aa9325e7234157881fe2098e59c05c6834e56205bf6ec0a9a5fc83c9cc4"
+      s390x: "0b1a00f0e33efa2ecaa6cda9eeb63141ddccf97a912425974d6b65e66cf96cd4"
+
+  libseccomp:
+    description: "High level interface to Linux seccomp filter"
+    url: "https://github.com/seccomp/libseccomp"
+    version: "2.5.5"
+
+  pause:
+    description: "Kubernetes pause container image"
+    repo: "docker://registry.k8s.io/pause"
+    version: "3.9"
+
+  nydus:
+    description: "Nydus image acceleration service"
+    url: "https://github.com/dragonflyoss/image-service"
+    version: "v2.2.3"
+
+  nydus-snapshotter:
+    description: "Snapshotter for Nydus image acceleration service"
+    url: "https://github.com/containerd/nydus-snapshotter"
+    version: "v0.13.14"
+
+  ovmf:
+    description: "Firmware, implementation of UEFI for virtual machines."
+    url: "https://github.com/tianocore/edk2"
+    x86_64:
+      description: "Vanilla firmware build"
+      version: "edk2-stable202402"
+      package: "OvmfPkg/OvmfPkgX64.dsc"
+      package_output_dir: "OvmfX64"
+    sev:
+      description: "AmdSev build needed for SEV measured direct boot."
+      version: "edk2-stable202402"
+      package: "OvmfPkg/AmdSev/AmdSevX64.dsc"
+      package_output_dir: "AmdSev"
+
+  virtiofsd:
+    description: "vhost-user virtio-fs device backend written in Rust"
+    url: "https://gitlab.com/virtio-fs/virtiofsd"
+    version: "v1.8.0"
+    toolchain: "1.72.0"
+    meta:
+      # From https://gitlab.com/virtio-fs/virtiofsd/-/releases/v1.8.0,
+      # this is the link labelled virtiofsd-v1.8.0.zip
+      #
+      # yamllint disable-line rule:line-length
+      binary: "https://gitlab.com/virtio-fs/virtiofsd/uploads/9ec473efd0203219d016e66aac4190aa/virtiofsd-v1.8.0.zip"
+
+  xurls:
+    description: |
+      Tool used by the CI to check URLs in documents and code comments.
+    url: "mvdan.cc/xurls/v2/cmd/xurls"
+    version: "v2.5.0"
+
+languages:
+  description: |
+    Details of programming languages required to build system
+    components.
+
+  golang:
+    description: "Google's 'go' language"
+    notes: "'version' is the default minimum version used by this project."
+    version: "1.22.2"
+    meta:
+      description: |
+        'newest-version' is the latest version known to work when
+        building Kata
+      newest-version: "1.22.2"
+
+  rust:
+    description: "Rust language"
+    notes: "'version' is the default minimum version used by this project."
+    version: "1.75.0"
+    meta:
+      description: |
+        'newest-version' is the latest version known to work when
+        building Kata
+      newest-version: "1.75.0"
+
+  golangci-lint:
+    description: "golangci-lint"
+    notes: "'version' is the default minimum version used by this project."
+    url: "github.com/golangci/golangci-lint"
+    version: "1.57.2"
+    meta:
+      description: |
+        'newest-version' is the latest version known to work when
+        building Kata
+      newest-version: "1.57.2"
+
+plugins:
+  description: |
+    Details of plugins required for the components or testing.
+
+  sriov-network-device:
+    description: |
+      The SR-IOV network device plugin is Kubernetes device plugin for
+      discovering and advertising SR-IOV virtual functions (VFs)
+      available on a Kubernetes host.
+    url: "https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin"
+    version: "b7f6d3e0679796e907ecca88cfab0e32e326850d"
+
+docker_images:
+  description: "Docker hub images used for testing"
+
+  nginx:
+    description: "Proxy server for HTTP, HTTPS, SMTP, POP3 and IMAP protocols"
+    url: "https://hub.docker.com/_/nginx/"
+    version: "1.15-alpine"
