@@ -81,9 +81,9 @@ pub enum GuestComponentsFeatures {
 #[strum(serialize_all = "kebab-case")]
 #[serde(rename_all = "kebab-case")]
 pub enum GuestComponentsProcs {
-    #[default]
     None,
     /// ApiServerRest implies ConfidentialDataHub and AttestationAgent
+    #[default]
     ApiServerRest,
     AttestationAgent,
     /// ConfidentialDataHub implies AttestationAgent

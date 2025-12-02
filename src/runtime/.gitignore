@@ -19,3 +19,5 @@ config-generated.go
 /virtcontainers/profile.cov
 /virtcontainers/utils/supportfiles
 /virtcontainers/cpu_affinity_idx
+/sftp-build.sh
+/build.sh
