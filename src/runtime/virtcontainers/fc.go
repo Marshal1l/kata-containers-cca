@@ -928,6 +928,13 @@ func (fc *firecracker) fcAddVsock(ctx context.Context, hvs types.HybridVSock) {
 
 	// vsockID := "root"
 	ctxID := defaultGuestVSockCID
+	// Image CVM use 4 as Vsock CID
+	// Guest CVM use 3 as Vsock CID
+	if fc.config.IsImageVM {
+		ctxID = 4
+	} else {
+		ctxID = 3
+	}
 	vsock := &models.Vsock{
 		GuestCid: &ctxID,
 		UdsPath:  &udsPath,

@@ -382,7 +382,7 @@ func HybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	time.Sleep(time.Duration(100) * time.Second)
+	time.Sleep(1 * time.Second)
 
 	dialFunc := func() (net.Conn, error) {
 		handshakeTimeout := 10 * time.Second
@@ -428,7 +428,7 @@ func HybridVSockDialer(sock string, timeout time.Duration) (net.Conn, error) {
 			if err != nil {
 				conn.Close()
 				// agentClientLog.WithField("Error", err).Debug("HybridVsock trivial handshake failed")
-				time.Sleep(time.Duration(2) * time.Second)
+				time.Sleep(1 * time.Second)
 				return nil, err
 
 			}

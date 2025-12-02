@@ -640,7 +640,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
 		}()
 
 	}
-
+	s.Logger().Info("MZHAnnotations :", &sandboxConfig.Containers[0])
 	setHypervisorConfigAnnotations(&sandboxConfig)
 
 	coldPlugVFIO, err := s.coldOrHotPlugVFIO(&sandboxConfig)
@@ -685,6 +685,12 @@ func setHypervisorConfigAnnotations(sandboxConfig *SandboxConfig) {
 			if value, ok := sandboxConfig.Containers[0].Annotations[a]; ok {
 				sandboxConfig.HypervisorConfig.SandboxNamespace = value
 			}
+		}
+		isImageCvmValue := sandboxConfig.Containers[0].Annotations["io.kata-containers.is-image-cvm"]
+		if isImageCvmValue == "true" {
+			sandboxConfig.HypervisorConfig.IsImageVM = true
+		} else {
+			sandboxConfig.HypervisorConfig.IsImageVM = false
 		}
 	}
 }

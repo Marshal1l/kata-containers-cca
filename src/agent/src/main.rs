@@ -112,7 +112,10 @@ const API_SERVER_PATH: &str = "/usr/local/bin/api-server-rest";
 /// Path of ocicrypt config file. This is used by image-rs when decrypting image.
 const OCICRYPT_CONFIG_PATH: &str = "/tmp/ocicrypt_config.json";
 
-const DEFAULT_LAUNCH_PROCESS_TIMEOUT: i32 = 6;
+/// Path of ttrpc vsock server
+const VSOCK_TTRPC_SERVER_PATH: &str = "/usr/local/bin/vsock-ttrpc-server";
+
+const DEFAULT_LAUNCH_PROCESS_TIMEOUT: i32 = 10;
 
 lazy_static! {
     static ref AGENT_CONFIG: AgentConfig =
@@ -465,7 +468,7 @@ fn init_attestation_components(logger: &Logger, config: &AgentConfig) -> Result<
         return Ok(None);
     }
 
-    debug!(logger, "spawning attestation-agent process {}", AA_PATH);
+    info!(logger, "spawning attestation-agent process {}", AA_PATH);
     launch_process(
         logger,
         AA_PATH,
@@ -491,7 +494,7 @@ fn init_attestation_components(logger: &Logger, config: &AgentConfig) -> Result<
     fs::write(OCICRYPT_CONFIG_PATH, ocicrypt_config.to_string().as_bytes())?;
     env::set_var("OCICRYPT_KEYPROVIDER_CONFIG", OCICRYPT_CONFIG_PATH);
 
-    debug!(
+    info!(
         logger,
         "spawning confidential-data-hub process {}", CDH_PATH
     );
@@ -513,7 +516,7 @@ fn init_attestation_components(logger: &Logger, config: &AgentConfig) -> Result<
     }
 
     let features = config.guest_components_rest_api;
-    debug!(
+    info!(
         logger,
         "spawning api-server-rest process {} --features {}", API_SERVER_PATH, features
     );
@@ -526,6 +529,8 @@ fn init_attestation_components(logger: &Logger, config: &AgentConfig) -> Result<
     )
     .map_err(|e| anyhow!("launch_process {} failed: {:?}", API_SERVER_PATH, e))?;
 
+    Command::new(VSOCK_TTRPC_SERVER_PATH).spawn()?;
+    info!(logger, "spawning vsock ttrpc server");
     Ok(Some(cdh_client))
 }
 

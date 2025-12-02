@@ -687,6 +687,9 @@ type HypervisorConfig struct {
 
 	// Initdata defines the initdata passed into guest when CreateVM
 	Initdata string
+
+	// If the vm work as Image VM
+	IsImageVM bool
 }
 
 // vcpu mapping from vcpu number to thread number

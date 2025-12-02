@@ -24,7 +24,7 @@ use crate::AGENT_CONFIG;
 const KATA_IMAGE_WORK_DIR: &str = "/run/kata-containers/image/";
 const CONFIG_JSON: &str = "config.json";
 const KATA_PAUSE_BUNDLE: &str = "/pause_bundle";
-
+const K8S_IS_IMAGE_CVM: &str = "io.kata-containers.is-image-cvm";
 const K8S_CONTAINER_TYPE_KEYS: [&str; 2] = [
     "io.kubernetes.cri.container-type",
     "io.kubernetes.cri-o.ContainerType",
@@ -60,8 +60,8 @@ impl ImageService {
         if !AGENT_CONFIG.image_registry_auth.is_empty() {
             let registry_auth = &AGENT_CONFIG.image_registry_auth;
             debug!(sl(), "Set registry auth file {:?}", registry_auth);
-            image_client.config.file_paths.auth_file = registry_auth.clone();
-            image_client.config.auth = true;
+            //image_client.config.file_paths.auth_file = registry_auth.clone();
+            //image_client.config.auth = true;
         }
 
         Self { image_client }
@@ -154,27 +154,52 @@ impl ImageService {
         let bundle_path = scoped_join(CONTAINER_BASE, cid)?;
         fs::create_dir_all(&bundle_path)?;
         info!(sl(), "pull image {image:?}, bundle path {bundle_path:?}");
-
-        let res = self
-            .image_client
-            .pull_image(image, &bundle_path, &None, &None)
-            .await;
-        match res {
-            Ok(image) => {
-                info!(
-                    sl(),
-                    "pull and unpack image {image:?}, cid: {cid:?} succeeded."
-                );
-            }
-            Err(e) => {
-                error!(
-                    sl(),
-                    "pull and unpack image {image:?}, cid: {cid:?} failed with {:?}.",
-                    e.to_string()
-                );
-                return Err(e);
-            }
-        };
+        let is_image_cvm = image_metadata
+            .get(K8S_IS_IMAGE_CVM)
+            .map_or(false, |val| val == "true");
+        if !is_image_cvm {
+            let res = self
+                .image_client
+                .guest_pull_image(image, &bundle_path, &None, &None)
+                .await;
+            match res {
+                Ok(image) => {
+                    info!(
+                        sl(),
+                        "pull and unpack image {image:?}, cid: {cid:?} succeeded."
+                    );
+                }
+                Err(e) => {
+                    error!(
+                        sl(),
+                        "pull and unpack image {image:?}, cid: {cid:?} failed with {:?}.",
+                        e.to_string()
+                    );
+                    return Err(e);
+                }
+            };
+        } else {
+            let res = self
+                .image_client
+                .pull_image(image, &bundle_path, &None, &None)
+                .await;
+            match res {
+                Ok(image) => {
+                    info!(
+                        sl(),
+                        "pull and unpack image {image:?}, cid: {cid:?} succeeded."
+                    );
+                }
+                Err(e) => {
+                    error!(
+                        sl(),
+                        "pull and unpack image {image:?}, cid: {cid:?} failed with {:?}.",
+                        e.to_string()
+                    );
+                    return Err(e);
+                }
+            };
+        }
         let image_bundle_path = scoped_join(&bundle_path, "rootfs")?;
         Ok(image_bundle_path.as_path().display().to_string())
     }
