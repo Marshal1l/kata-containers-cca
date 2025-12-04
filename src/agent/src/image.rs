@@ -5,17 +5,17 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+use anyhow::{anyhow, bail, Context, Result};
+use image_rs::image::ImageClient;
+use kata_sys_util::validate::verify_id;
+use oci_spec::runtime as oci;
 use safe_path::scoped_join;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-
-use anyhow::{anyhow, bail, Context, Result};
-use image_rs::image::ImageClient;
-use kata_sys_util::validate::verify_id;
-use oci_spec::runtime as oci;
+use std::time::Instant;
 use tokio::sync::Mutex;
 
 use crate::rpc::CONTAINER_BASE;
@@ -158,15 +158,18 @@ impl ImageService {
             .get(K8S_IS_IMAGE_CVM)
             .map_or(false, |val| val == "true");
         if !is_image_cvm {
+            let start = Instant::now();
             let res = self
                 .image_client
                 .guest_pull_image(image, &bundle_path, &None, &None)
                 .await;
+            let duration = start.elapsed();
             match res {
                 Ok(image) => {
                     info!(
                         sl(),
-                        "pull and unpack image {image:?}, cid: {cid:?} succeeded."
+                        "[MZH]pull and unpack image {image:?}, cid: {cid:?} succeeded.(guest_pull took: {} ms)",
+                        duration.as_millis()
                     );
                 }
                 Err(e) => {
@@ -179,16 +182,19 @@ impl ImageService {
                 }
             };
         } else {
+            let start = Instant::now();
             let res = self
                 .image_client
                 .pull_image(image, &bundle_path, &None, &None)
                 .await;
+            let duration = start.elapsed();
             match res {
                 Ok(image) => {
                     info!(
                         sl(),
-                        "pull and unpack image {image:?}, cid: {cid:?} succeeded."
-                    );
+                        "[MZH]pull and unpack image {image:?}, cid: {cid:?} succeeded. (pull took: {} ms)", // [修改] 增加耗时日志
+                        duration.as_millis()
+                        );
                 }
                 Err(e) => {
                     error!(

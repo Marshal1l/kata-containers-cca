@@ -7,7 +7,9 @@ package virtcontainers
 
 import (
 	"context"
+	"fmt"
 	"runtime"
+	"time"
 
 	deviceApi "github.com/kata-containers/kata-containers/src/runtime/pkg/device/api"
 	deviceConfig "github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
@@ -66,13 +68,13 @@ func CreateSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Fac
 func createSandboxFromConfig(ctx context.Context, sandboxConfig SandboxConfig, factory Factory, prestartHookFunc func(context.Context) error) (_ *Sandbox, err error) {
 	span, ctx := katatrace.Trace(ctx, virtLog, "createSandboxFromConfig", apiTracingTags)
 	defer span.End()
-
+	start := time.Now()
 	// Create the sandbox.
 	s, err := createSandbox(ctx, sandboxConfig, factory)
 	if err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] createSandbox TIME: %v", time.Since(start)))
 	// Cleanup sandbox resources in case of any failure
 	defer func() {
 		if err != nil {
@@ -87,40 +89,44 @@ func createSandboxFromConfig(ctx context.Context, sandboxConfig SandboxConfig, f
 			s.removeNetwork(ctx)
 		}
 	}()
-
+	start = time.Now()
 	// Create the sandbox network
 	if err = s.createNetwork(ctx); err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] createNetwork TIME: %v", time.Since(start)))
+	start = time.Now()
 	// Set the sandbox host cgroups.
 	if err := s.setupResourceController(); err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] setupResourceController TIME: %v", time.Since(start)))
 	// Start the VM
+	start = time.Now()
 	if err = s.startVM(ctx, prestartHookFunc); err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] startVM TIME: %v", time.Since(start)))
 	// rollback to stop VM if error occurs
 	defer func() {
 		if err != nil {
 			s.stopVM(ctx)
 		}
 	}()
-
+	start = time.Now()
 	s.postCreatedNetwork(ctx)
-
+	virtLog.Info(fmt.Sprintf("[MZH] postCreatedNetwork TIME: %v", time.Since(start)))
+	start = time.Now()
 	if err = s.getAndStoreGuestDetails(ctx); err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] getAndStoreGuestDetails TIME: %v", time.Since(start)))
+	start = time.Now()
 	// Create Containers
 	if err = s.createContainers(ctx); err != nil {
 		return nil, err
 	}
-
+	virtLog.Info(fmt.Sprintf("[MZH] createContainers TIME: %v", time.Since(start)))
 	return s, nil
 }
 

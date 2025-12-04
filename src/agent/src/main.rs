@@ -190,7 +190,7 @@ async fn create_logger_task(rfd: RawFd, vsock_port: u32, shutdown: Receiver<bool
 
 async fn real_main(init_mode: bool) -> std::result::Result<(), Box<dyn std::error::Error>> {
     env::set_var("RUST_BACKTRACE", "full");
-
+    let start_time = std::time::Instant::now();
     // List of tasks that need to be stopped for a clean shutdown
     let mut tasks: Vec<JoinHandle<Result<()>>> = vec![];
 
@@ -275,7 +275,15 @@ async fn real_main(init_mode: bool) -> std::result::Result<(), Box<dyn std::erro
     }
 
     // Start the sandbox and wait for its ttRPC server to end
-    start_sandbox(&logger, config, init_mode, &mut tasks, shutdown_rx.clone()).await?;
+    start_sandbox(
+        &logger,
+        config,
+        init_mode,
+        &mut tasks,
+        shutdown_rx.clone(),
+        start_time,
+    )
+    .await?;
 
     // Install a NOP logger for the remainder of the shutdown sequence
     // to ensure any log calls made by local crates using the scope logger
@@ -365,6 +373,7 @@ async fn start_sandbox(
     init_mode: bool,
     tasks: &mut Vec<JoinHandle<Result<()>>>,
     shutdown: Receiver<bool>,
+    start_time: std::time::Instant,
 ) -> Result<()> {
     let debug_console_vport = config.debug_console_vport as u32;
 
@@ -434,7 +443,7 @@ async fn start_sandbox(
     .await?;
 
     server.start().await?;
-
+    info!(logger, "[MZH]agent fully started"; "startup-time-ms" => start_time.elapsed().as_millis());
     rx.await?;
     server.shutdown().await?;
 
